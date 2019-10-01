@@ -61,10 +61,9 @@ def test(model, words_map, labels_map, test_filename, validation_filename):
 def main(argv = None):
     if argv is None:
         argv = sys.argv
-    test_file, validate_file = argv[1], argv[2];
+    test_file, validate_file = argv[1], argv[2]
     f = open('model.pyc', 'rb')
-    A, B, pi, labels_map, words_map = pickle.load(f)
-    hmm = HMMTagger(A, B, pi)
+    hmm, labels_map, words_map = pickle.load(f)
     acc = test(hmm, words_map, labels_map, test_file, validate_file)
     print("The accuracy is %.2f%%." % (acc))
     return 0
