@@ -8,7 +8,7 @@ import pickle
 import sys
 import time
 
-torch.manual_seed(123)
+torch.manual_seed(27)
 VEC_DIM = 300
 LR = 0.01
 ITERATION = 200
@@ -181,7 +181,7 @@ def data2file(dataset = 'training'):
     return X, Y, length
 
 
-def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iterations = 1000):
+def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iterations = 1000, name = 'DAN'):
     opt_name = "SGD" if optimizer == "SGD" else "Adam"
     if optimizer == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
@@ -189,13 +189,13 @@ def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iter
         optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
     model.to(DEVICE)
     
-    #train_X, train_Y, train_length = data2file('training')
+    train_X, train_Y, train_length = loadData('training', shuffle = True)#data2file('training')
     
-    train_X, train_Y, train_length = pickle.load(open('train' + str(VEC_DIM) + '.pkl', 'rb'))
-    test_X, test_Y, test_length = pickle.load(open('test' + str(VEC_DIM) + '.pkl', 'rb'))
+    #train_X, train_Y, train_length = pickle.load(open('train' + str(VEC_DIM) + '.pkl', 'rb'))
+    #test_X, test_Y, test_length = pickle.load(open('test' + str(VEC_DIM) + '.pkl', 'rb'))
     #print("data loading done")
 
-    print("GPU loading failed" if DEVICE == torch.device("cpu") else "GPU loading successful")
+    print("Training will on GPU" if DEVICE == torch.device("cpu") else "Training will on CPU")
 
     losses = []
     train_errors = []
@@ -246,7 +246,7 @@ def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iter
     del train_length
     '''
 
-    #test_X, test_Y, test_length = data2file('testing')
+    test_X, test_Y, test_length = loadData('testing')
     
     #print("test loading successful")
     acc = accuracy(model, test_X, test_Y, test_length)
@@ -255,7 +255,9 @@ def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iter
     del test_Y
     del test_length
     
-    pickle.dump(model, open('model.torch', 'wb'))
+    file_name = 'model_' + name + '.torch'
+    pickle.dump(model, open(file_name, 'wb'))
+    print("Model " + name + " trained and stored in file \'" + file_name + "\'.")
     '''
     plt.figure()
     plt.xlabel("Iteration number K")
@@ -276,18 +278,23 @@ def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iter
     '''
     return acc
 
-model = DAN(vec_dim = VEC_DIM, droprate = 0.5).to(DEVICE)
-#print(model)
-acc = train(model, learning_rate = LR, optimizer = 'Adam', batch_size = BATCH_SIZE, iterations = ITERATION)
-
-
-del model
-
-'''
-if __name__ == 'main':
-    if len(sys.argv) == 1:
+def main(argv = sys.argv):
+    if len(argv) == 1:
         model = DAN(vec_dim = VEC_DIM).to(DEVICE)
-        train(model, learning_rate = LR, optimizer = OPT, batch_size = BATCH_SIZE, iterations = ITERATION)
-    elif len(sys.argv) == 2:
-        model = pickle.load(open('model.torch', 'rb'))
-'''
+        train(model, learning_rate = LR, optimizer = "Adam", batch_size = BATCH_SIZE, iterations = ITERATION, name = 'DAN')
+        del model
+        BATCH_SIZE = 1
+        model = RNNLM(vec_dim = VEC_DIM).to(DEVICE)
+        train(model, learning_rate = LR, optimizer = "SGD", batch_size = BATCH_SIZE, iterations = ITERATION, name = 'RNN')
+        del model
+    elif len(argv) == 2:
+        model = pickle.load(open(sys.argv[1], 'rb'))
+        test_X, test_Y, test_length = data2file('testing')
+        acc = accuracy(model, test_X, test_Y, test_length)
+        print("This model has an accuracy {:5f} on the testing dataset.".format(acc))
+    else:
+        print("Please enter correct number of parameters.")
+
+if __name__ == '__main__':
+    main(sys.argv)
+    
