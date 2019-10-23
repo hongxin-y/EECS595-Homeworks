@@ -8,10 +8,12 @@ import pickle
 import sys
 import time
 
-VEC_DIM = 200
-LR = 0.4
-ITERATION = 15
-BATCH_SIZE = 1
+torch.manual_seed(123)
+VEC_DIM = 300
+LR = 0.01
+ITERATION = 200
+BATCH_SIZE = 80
+GLOVEPATH = "glove.6B/glove.6B."
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #torch.device("cpu") #
 
 def glove2file():
@@ -19,7 +21,7 @@ def glove2file():
     idx = 0
     word2idx = {}
     vectors = []
-    with open("glove.6B/glove.6B." + str(VEC_DIM) + "d.txt", 'rb') as f:
+    with open(GLOVEPATH + str(VEC_DIM) + "d.txt", 'rb') as f:
         for l in f:
             line = l.split()
             word = line[0].decode()
@@ -40,55 +42,55 @@ def file2glove():
     return word2idx, vectors
 
 word2idx, vectors = file2glove()
-print("glove loading done")
+#print("glove loading done")
 
 class DAN(nn.Module):
-    def __init__(self, vec_dim = 50):
+    def __init__(self, vec_dim = 50, droprate = 0.5):
         super(DAN, self).__init__()
         self.dense = nn.Sequential(
-            nn.Linear(vec_dim, 1200),
-            nn.BatchNorm1d(1200),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-
-            nn.Linear(1200,900),
-            nn.BatchNorm1d(900),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-
-            nn.Linear(900,600),
+            nn.Linear(vec_dim, 600),
             nn.BatchNorm1d(600),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(droprate),
+
+            nn.Linear(600,300),
+            nn.BatchNorm1d(300),
+            nn.ReLU(),
+            nn.Dropout(droprate),
             
-            nn.Linear(600, 2)
+            nn.Linear(300, 2)
         )
 
     def forward(self, x, length):
-        out = torch.sum(x) / length
+        out = torch.sum(x, dim = 1).float() / length.float()[:, None].to(DEVICE)
         out = self.dense(out)
         return out
 
 class RNNLM(nn.Module):
     def __init__(self, vec_dim):
         super(RNNLM, self).__init__()
-        #self.conv = nn.Conv1d(vec_dim, 64, 5)
         self.rnn = nn.LSTM(input_size = vec_dim, hidden_size = 4, batch_first = True, bidirectional = False)
-        #self.dropout = nn.Dropout(0.5)
         self.linear = nn.Linear(4, 2)
+        self.initialize()
 
     def initialize(self):
         w = self.rnn.all_weights
         nn.init.xavier_uniform_(w[0][0])
         nn.init.xavier_uniform_(w[0][1])
         #nn.init.xavier_uniform_(w[1][0])
-        #nn.init.xavier_uniform_(w[0][1])
+        #nn.init.xavier_uniform_(w[1][1])
+
+    def last_element(self, output, length):
+        ret = []
+        for i in range(output.shape[0]):
+            ret.append(output[:,length[i]-1,:][i])
+        return torch.cat(ret,0).view(output.shape[0],-1)
 
     def forward(self, seq, length, hidden = None):
         seq = torch.nn.utils.rnn.pack_padded_sequence(seq, length, batch_first = True)
         output, _ = self.rnn(seq)
-        output = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first = True)
-        output = self.linear(output[0][:,-1,:])
+        output, _ = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first = True)
+        output = self.linear(self.last_element(output, length))
         return output
 
 
@@ -139,7 +141,7 @@ def mean1d(x):
     return torch.mean(x, dim = 0)
 
 def accuracy(model, X, Y, L):
-    batch_size = BATCH_SIZE
+    batch_size = 100
     acc = 0
     cnt = 0
     for k in range((X.shape[0]-1)//batch_size + 1):
@@ -179,24 +181,21 @@ def data2file(dataset = 'training'):
     return X, Y, length
 
 
-def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iterations = 1000, seed = 1):
+def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iterations = 1000):
     opt_name = "SGD" if optimizer == "SGD" else "Adam"
-    torch.manual_seed(seed)
     if optimizer == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
     else:
         optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
     model.to(DEVICE)
-    model.initialize()
-
     
     #train_X, train_Y, train_length = data2file('training')
     
     train_X, train_Y, train_length = pickle.load(open('train' + str(VEC_DIM) + '.pkl', 'rb'))
     test_X, test_Y, test_length = pickle.load(open('test' + str(VEC_DIM) + '.pkl', 'rb'))
-    print("data loading done")
+    #print("data loading done")
 
-    print("GPU loading failed") if DEVICE == torch.device("cpu") else print("GPU loading successful")
+    print("GPU loading failed" if DEVICE == torch.device("cpu") else "GPU loading successful")
 
     losses = []
     train_errors = []
@@ -220,15 +219,15 @@ def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iter
             
             loss.backward()
             optimizer.step()
-
+        '''
         losses.append(loss.item())
-        if (epoch+1)%10 == 0:
+        if (epoch+1)%50 == 0:
             print("The training loss on Epoch {:d} is {:.3f}".format(epoch+1, loss.item()))
         
-        '''
+        
         acc_train = accuracy(model, train_X, train_Y, train_length)
         acc_test = accuracy(model, test_X, test_Y, test_length)
-        if (epoch+1)%10 == 0:
+        if (epoch+1)%50 == 0:
             print("The accuracy on testing dataset is {:.3f} and on training dataset is {:.3f}".format(acc_test, acc_train))
         
         train_errors.append(acc_train)
@@ -236,24 +235,27 @@ def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iter
         '''
         
     train_stop_time = time.perf_counter()
-    
-    print("Total Training Time: ", train_stop_time - train_start_time)
+    #print("Total Training Time: ", train_stop_time - train_start_time)
     model.eval()
 
+    '''
     acc = accuracy(model, train_X, train_Y, train_length)
     print("Accuracy on training dataset is {:5f}".format(acc))
     del train_X
     del train_Y
     del train_length
+    '''
 
     #test_X, test_Y, test_length = data2file('testing')
     
-    print("test loading successful")
+    #print("test loading successful")
     acc = accuracy(model, test_X, test_Y, test_length)
-    print("Accuracy on testing dataset is {:5f}".format(acc))
+    print("This model has an accuracy {:5f} on the testing dataset.".format(acc))
     del test_X
     del test_Y
     del test_length
+    
+    pickle.dump(model, open('model.torch', 'wb'))
     '''
     plt.figure()
     plt.xlabel("Iteration number K")
@@ -273,15 +275,13 @@ def train(model, learning_rate = 0.001, optimizer = "SGD", batch_size = 20, iter
     plt.savefig("errors" + opt_name + str(learning_rate) + ".jpg")
     '''
     return acc
-for OPT in ['SGD', 'Adam']:
-    for LR in [0.07, 0.05, 0.03, 0.01, 0.005]:
-        model = RNNLM(vec_dim = VEC_DIM).to(DEVICE)
-        print(model)
-        print("Optimizer is {}, Embedding in {:d} dim, and LR = {:.3f}".format(OPT, VEC_DIM, LR))
-        print("test vector dim: ", vectors[0].shape)
-        train(model, learning_rate = LR, optimizer = OPT, batch_size = BATCH_SIZE, iterations = ITERATION)
 
-        del model
+model = DAN(vec_dim = VEC_DIM, droprate = 0.5).to(DEVICE)
+#print(model)
+acc = train(model, learning_rate = LR, optimizer = 'Adam', batch_size = BATCH_SIZE, iterations = ITERATION)
+
+
+del model
 
 '''
 if __name__ == 'main':
