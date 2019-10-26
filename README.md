@@ -3,6 +3,7 @@ My own homework solutions of EECS595, Natural Language Processing.
 
 ## Homeworks List
 + **Homework 1** Part of Speech tagging based on Hidden Markov Model on part of Penn Treebank dataset.
++ **Homework 2** Sentiment Analysis based on DAN(Deep Average Network) and RNN(LSTM).
 
 ## Homework 1
 ### Input
@@ -16,4 +17,44 @@ Where `testing_filename` is the name of test set document and `testing_with_labe
 There is a simple output on terminal of accuracy on your test set.
 ```bash
 The accuracy is 92.29%.
+```
+
+## Homework2
+### Input
+The file `sentiment.py` is the main file. Run `sentiment.py` in two ways
+```bash
+python sentiment.py
+```
+In this way, the program will generate two new model based on pre-set parameters, one of them is a DAN model and the other is a RNN model. 
+```bash
+python sentiment.py model.torch
+```
+In this way, the program will return the accuracy of test data using the model stored in the `model.torch` file.
+
+### Parameters and Path
+This program requires a GloVe pre-train model, which should be in the `glove.6B/` and stored in form `glove.6B.300d.txt`.
+The training data and testing data should be in the path `HW2/` and as form `training/pos` or `training/neg`, which store the positive labeld documents and negative labeled document respectively.
+The parameters of DAN are set as
+```
+VEC_DIM = 300
+LR = 0.01
+ITERATION = 200
+BATCH_SIZE = 80
+```
+The parameter of RNN are set as
+```
+VEC_DIM = 300
+LR = 0.01
+ITERATION = 200
+BATCH_SIZE = 1
+```
+
+### Output
+This program will detect the GPU and automaticly choose CPU or GPU to train the model.
+```bash
+Training will on GPU
+```
+Then there is a simle output on terminal of accuracy on your test set
+```bash
+This model has an accuracy 0.8757 on the testing dataset.
 ```
