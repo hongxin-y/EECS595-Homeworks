@@ -288,7 +288,7 @@ def main(argv = sys.argv):
         train(model, learning_rate = LR, optimizer = "SGD", batch_size = BATCH_SIZE, iterations = ITERATION, name = 'RNN')
         del model
     elif len(argv) == 2:
-        model = pickle.load(open(sys.argv[1], 'rb'))
+        model = pickle.load(open(sys.argv[1], 'rb')).to(DEVICE)
         test_X, test_Y, test_length = data2file('testing')
         acc = accuracy(model, test_X, test_Y, test_length)
         print("This model has an accuracy {:5f} on the testing dataset.".format(acc))
