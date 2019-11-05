@@ -1,0 +1,20 @@
+NP -> Det Adj Noun : 93
+NP -> Det Noun PP : 27
+NP -> Det Noun : 72
+NP -> Det Adj Noun PP : 10
+PP -> Prep NP : 102
+S -> Verb NP PP : 65
+S -> Verb NP : 35
+
+Verb -> put : 65
+Verb -> take : 35
+Det -> the : 202
+Noun -> cone : 29
+Noun -> square : 51
+Noun -> block : 47
+Noun -> circle : 51
+Noun -> cube : 24
+Prep -> on : 102
+Adj -> red : 58
+Adj -> blue : 28
+Adj -> green : 17
