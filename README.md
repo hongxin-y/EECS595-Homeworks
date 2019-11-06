@@ -4,6 +4,7 @@ My own homework solutions of EECS595, Natural Language Processing.
 ## Homeworks List
 + **Homework 1** Part of Speech tagging based on Hidden Markov Model on part of Penn Treebank dataset.
 + **Homework 2** Sentiment Analysis based on DAN(Deep Average Network) and RNN(LSTM).
++ **Homeword 3** A grammar parser based on CKY algorithm.
 
 ## Homework 1
 ### Input
@@ -58,3 +59,30 @@ Then there is a simle output on terminal of accuracy on your test set
 ```bash
 This model has an accuracy 0.8757 on the testing dataset.
 ```
+## Homework2
+
+### Input
+
+Run `Parse.py` in command line
+```bash
+python Parse.py TestInputFile GrammarFile TextOutputFile
+```
+The `TextInputFile` is the file name of input with the raw test splited by space. The `GrammarFile` is the file name of grammar structure with form
+```
+NP -> Det Adj Noun : 93
+
+Verb -> put : 65
+```
+The number after the grammar/vocabulary rule is the frequency. There is a ***space line*** between Grammar and Vocabulary part. 
+
+### Output
+
+The program will generate a new file called `TextOutputFile` with text form
+```
+[S [Verb take] [NP [Det the] [Noun block]] [PP [Prep on] [NP [Det the] [Adj green] [Noun circle]]]]
+```
+representing a grammar tree structure. If the corresponding input is invalid, the output would be `FAIL`
+
+### Test
+
+The default name of testing file is `TestingTree.txt` with text form just like the output. If there is no file called `TestingTree.txt`, the program will output `There is no test file.`. Or it will output the accuracy of the parser on the test dataset like `Accuracy is 60.00% on test data.`
