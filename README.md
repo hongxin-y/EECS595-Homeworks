@@ -20,7 +20,7 @@ There is a simple output on terminal of accuracy on your test set.
 The accuracy is 92.29%.
 ```
 
-## Homework2
+## Homework3
 ### Input
 The file `sentiment.py` is the main file. Run `sentiment.py` in two ways
 ```bash
