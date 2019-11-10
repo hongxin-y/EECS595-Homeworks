@@ -20,7 +20,7 @@ There is a simple output on terminal of accuracy on your test set.
 The accuracy is 92.29%.
 ```
 
-## Homework3
+## Homework2
 ### Input
 The file `sentiment.py` is the main file. Run `sentiment.py` in two ways
 ```bash
@@ -59,7 +59,7 @@ Then there is a simle output on terminal of accuracy on your test set
 ```bash
 This model has an accuracy 0.8757 on the testing dataset.
 ```
-## Homework2
+## Homework3
 
 ### Input
 
